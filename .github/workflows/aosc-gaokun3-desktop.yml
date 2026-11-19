@@ -25,21 +25,21 @@ jobs:
     timeout-minutes: 240
     env:
       TZ: UTC
-      GAOKUN_DIR: ${ github.workspace }
-      WORKDIR: ${ github.workspace }}/build-aosc
-      KERN_SRC: ${ github.workspace }}/build-aosc/linux
-      KERN_SRC_BASE: ${ github.workspace }}/build-aosc/linux
-      KERN_SRC_EL2: ${ github.workspace }}/build-aosc/linux-el2
-      KERN_OUT: ${ github.workspace }}/build-aosc/kernel-out
-      KERN_OUT_EL2: ${ github.workspace }}/build-aosc/kernel-out-el2
-      ROOTFS_DIR: ${ github.workspace }}/build-aosc/rootfs
-      ARTIFACT_DIR: ${ github.workspace }}/build-aosc/artifacts
+      GAOKUN_DIR: ${{ github.workspace }}
+      WORKDIR: ${{ github.workspace }}}/build-aosc
+      KERN_SRC: ${{ github.workspace }}}/build-aosc/linux
+      KERN_SRC_BASE: ${{ github.workspace }}}/build-aosc/linux
+      KERN_SRC_EL2: ${{ github.workspace }}}/build-aosc/linux-el2
+      KERN_OUT: ${{ github.workspace }}}/build-aosc/kernel-out
+      KERN_OUT_EL2: ${{ github.workspace }}}/build-aosc/kernel-out-el2
+      ROOTFS_DIR: ${{ github.workspace }}}/build-aosc/rootfs
+      ARTIFACT_DIR: ${{ github.workspace }}}/build-aosc/artifacts
       AOSC_SNAPSHOT: ${{ inputs.aosc_snapshot }}
       IMAGE_SIZE: ${{ inputs.image_size }}
       IMAGE_CHUNK_SIZE: 1900M
       BUILD_EL2: "false"
-      CCACHE_DIR: ${ github.workspace }}/.ccache
-      CCACHE_BASEDIR: ${ github.workspace }}
+      CCACHE_DIR: ${{ github.workspace }}}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
     steps:
       - name: Checkout build repository
         uses: actions/checkout@v6
