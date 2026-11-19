@@ -34,20 +34,19 @@ https://wiki.aosc.io/aosc-os/installation/rawimgs/
 The official ARM64 Desktop tarballs are published here:
 https://releases.aosc.io/os-arm64/desktop/
 
-AOSC's KDE 6 update notes describe Plasma Login Manager as the new default:
+The October 2026 AOSC release notes identify KDE Plasma 6.7.5 as the updated
+desktop environment:
+https://aosc.io/aosc-os/relnote
+
+AOSC's KDE 6 update notes describe the new Plasma Login Manager and document
+SDDM as a fallback:
 https://aosc.io/news/2026-10-11-kde-6.7-update-notes
-However, the current ARM64 stable package index lists plasma-login-manager
-under missing packages while SDDM is available. This image therefore uses
-SDDM on ARM64:
+
+The current ARM64 stable package index lists plasma-login-manager under
+missing packages while SDDM is available. This workflow therefore installs
+and enables SDDM for the ARM64 image:
 https://packages.aosc.io/missing/arm64/stable?page=6
 https://packages.aosc.io/repo/arm64/stable?page=61
-
-The AOSC KDE 6 update notes describe Plasma Login Manager as the new default, but the current ARM64 stable package index lists plasma-login-manager as missing while SDDM is available. This image therefore retains SDDM for ARM64:
-https://packages.aosc.io/missing/arm64/stable?page=6
-https://packages.aosc.io/repo/arm64/stable?page=61
-
-The October 2026 KDE 6 update switched the default login manager from SDDM to Plasma Login Manager:
-https://aosc.io/news/2026-10-11-kde-6.7-update-notes
 
 ## Boot layout
 
