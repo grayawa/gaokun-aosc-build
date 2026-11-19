@@ -16,16 +16,20 @@ Inputs:
 
 The workflow:
 
-1. Downloads the official AOSC ARM64 Desktop rootfs tarball and verifies its
-   SHA-256 sidecar.
-2. Installs dracut-ng, NetworkManager, SDDM and the AOSC graphical OOBE wizard through the AOSC ARM64 stable repository.
-3. Builds the standard kernel at the commit pinned in build.env.
-4. Installs the kernel modules, Gaokun3 DTB and repository firmware into the
-   rootfs.
-5. Creates an initramfs with the device storage, Wi-Fi, input and audio drivers.
-6. Creates a GPT image with a 1 GiB FAT32 ESP and an ext4 root partition.
-7. Installs systemd-boot and writes a BLS entry with an explicit DTB path.
-8. Compresses the image, writes SHA256SUMS and uploads a workflow artifact.
+1. Builds the standard kernel at the commit pinned in build.env.
+2. Creates the GPT image with a 1 GiB FAT32 ESP and an ext4 root partition.
+3. Streams the official AOSC ARM64 Desktop rootfs tarball directly into the
+   image's ext4 partition while verifying its SHA-256 checksum.
+4. Installs dracut-ng, NetworkManager, SDDM and the AOSC graphical OOBE wizard
+   through the AOSC ARM64 stable repository.
+5. Installs the kernel modules, Gaokun3 DTB and repository firmware into the
+   rootfs, then creates an initramfs with the device drivers and firmware.
+6. Installs systemd-boot and writes a BLS entry with an explicit DTB path.
+7. Compresses the image, writes SHA256SUMS and uploads a workflow artifact.
+
+The rootfs is built directly inside the final disk image. The tarball is streamed
+through a FIFO and hashed in parallel, so neither a separate tarball copy nor a
+second full staging-rootfs copy is needed on the runner.
 
 AOSC's ARM installation notes explain that generic ARM tarballs contain an
 unconfigured mainline kernel and require device-specific image preparation:
