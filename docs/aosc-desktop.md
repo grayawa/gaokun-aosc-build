@@ -104,3 +104,57 @@ anything and the display can be configured manually in System Settings.
 The repository checks run Bash syntax validation, ShellCheck and the existing
 boot-entry unit tests. They do not replace a real boot test on the target
 tablet.
+
+
+## Flash-ready GitHub Actions image
+
+Run [the experimental build workflow](../.github/workflows/aosc-gaokun3-desktop.yml)
+on branch `aosc-desktop`. Its downloadable `aosc-gaokun3-desktop` artifact
+is a ZIP produced by GitHub Actions, **not the disk image itself**. Open the ZIP
+and extract its files; the important one is a **single**
+`aosc-desktop-<date>-gaokun3.img.zst`. Do not open that compressed image as an
+archive and try to write its embedded EFI/rootfs partitions separately.
+
+On Windows, Rufus 4.7+ supports Zstandard compressed disk images: select the
+`.img.zst` in Rufus, choose the **whole removable USB drive**, and start a
+raw/DD image write. If the image isn't recognized by your writing utility,
+decompress `.img.zst` with 7-Zip or `zstd -d` and write the resulting
+`.img` as a raw disk image.
+
+On Linux, decompress then write (replace `/dev/sdX` with the actual USB
+**disk**, not its partition; double-check using `lsblk`):
+
+```sh
+sha256sum -c SHA256SUMS
+zstd -d aosc-desktop-*.img.zst -o gaokun3.img
+lsblk -o NAME,SIZE,MODEL,TRAN,MOUNTPOINTS
+sudo dd if=gaokun3.img of=/dev/sdX bs=4M status=progress conv=fsync
+sync
+```
+
+The image is 24 GiB uncompressed by default, so use a USB stick of at least
+32 GB. **All data and the USB's partition table will be overwritten.**
+On Android, MT Manager may identify subimages such as `0.EFI.img` and
+`1.rootfs.img` inside the raw disk image. These are partition *views* of
+the complete GPT disk. They are not separate flash targets.
+
+GitHub Releases restrict each individual asset to less than 2 GiB. The
+`publish_release` option therefore still splits large `.img.zst` files into
+pieces, with `SHA256SUMS.parts`. GitHub Actions artifacts now keep a
+complete, unbroken compressed raw image inside the artifact ZIP.
+
+## Optional EL2 mode
+
+Following [9Bakabaka's 7.2.7 Fedora EL2 release](https://github.com/9Bakabaka/build/releases/tag/fedora45-7.2.7-gaokun3%2B-el2-20261115133603),
+this experimental workflow builds both the normal EL1 kernel
+`73033564068250603f5b2150c408554faaf22d66` and the pinned EL2
+kernel `6122a641adb7b93e2671867540d6f04ef3fe1529`.
+The ESP contains two systemd-boot entries, the EL2-specific DTB and
+initramfs, `slbounceaa64.efi`, `qebspilaa64.efi`, `tcblaunch.exe`, and the
+required Qualcomm DSP firmware. **Normal EL1 remains the default boot**;
+choose the experimental EL2 entry manually.
+
+This is adapted from a 2023 Gaokun3-oriented build. Neither EL1 nor EL2
+is verified on the MateBook E Go 2022 3 GHz performance variant. EL2 may
+lose Venus hardware video decode and may fail before KVM is usable.
+Boot from USB first; do not overwrite the internal Windows disk.
