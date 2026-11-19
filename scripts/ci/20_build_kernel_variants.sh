@@ -50,7 +50,11 @@ test -f "$KERN_SRC/arch/arm64/configs/gaokun3_defconfig"
 if [[ "$BUILD_EL2" == true ]]; then
   : "${KERN_OUT_EL2:?missing KERN_OUT_EL2}"
   test -f "$KERN_SRC_EL2/arch/arm64/configs/gaokun3_defconfig"
-  test -f "$KERN_SRC_EL2/arch/arm64/boot/dts/qcom/sc8280xp-huawei-gaokun3-el2.dts"
+  # This is a composite DTB built from the normal board DTB + sc8280xp-el2.dtbo.
+  test -f "$KERN_SRC_EL2/arch/arm64/boot/dts/qcom/sc8280xp-el2.dtso" || {
+    echo "Missing EL2 overlay sc8280xp-el2.dtso in $KERN_SRC_EL2" >&2
+    exit 1
+  }
 fi
 
 build_variant "$KERN_SRC" "$KERN_OUT"
