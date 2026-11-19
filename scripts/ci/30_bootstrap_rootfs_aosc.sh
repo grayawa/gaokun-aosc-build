@@ -220,6 +220,10 @@ add_drivers+=" ext4 nvme phy-qcom-qmp-pcie phy-qcom-qmp-combo phy-qcom-qmp-usb p
 install_items+=" /lib/firmware/qcom/sc8280xp/HUAWEI/gaokun3/qcslpi8280.mbn /lib/firmware/qcom/sc8280xp/HUAWEI/gaokun3/qcadsp8280.mbn /lib/firmware/qcom/sc8280xp/HUAWEI/gaokun3/qccdsp8280.mbn /lib/firmware/qcom/sc8280xp/SC8280XP-HUAWEI-GAOKUN3-tplg.bin /lib/firmware/qcom/sc8280xp/HUAWEI/gaokun3/audioreach-tplg.bin "
 EOF
 
+# The target image now contains everything needed from the kernel build tree.
+# Drop the source and object files before finalizing the initramfs to save disk.
+rm -rf "$KERN_SRC" "$KERN_OUT"
+
 echo "$snapshot" > "$WORKDIR/aosc-snapshot.txt"
 if [[ -n "${GITHUB_ENV:-}" ]]; then
   echo "AOSC_SNAPSHOT=$snapshot" >> "$GITHUB_ENV"

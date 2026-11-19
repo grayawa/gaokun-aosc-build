@@ -39,6 +39,7 @@ jobs:
       IMAGE_CHUNK_SIZE: 1900M
       BUILD_EL2: "false"
       CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 2G
       CCACHE_BASEDIR: ${{ github.workspace }}
     steps:
       - name: Checkout build repository
