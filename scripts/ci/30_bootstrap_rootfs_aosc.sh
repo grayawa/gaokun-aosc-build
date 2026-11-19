@@ -84,11 +84,11 @@ parted -s "$IMAGE_FILE" mkpart rootfs ext4 "${EFI_END_MIB}MiB" 100%
 
 LOOP="$(sudo losetup --show -fP "$IMAGE_FILE")"
 echo "$LOOP" > "$WORKDIR/loop-device.txt"
-sudo mkfs.vfat -F32 -n EFI "$${LOOP}p1"
-sudo mkfs.ext4 -F -L rootfs "$${LOOP}p2"
-sudo blkid -s UUID -o value "$${LOOP}p1" > "$WORKDIR/efi-uuid.txt"
-sudo blkid -s UUID -o value "$${LOOP}p2" > "$WORKDIR/root-uuid.txt"
-sudo mount "$${LOOP}p2" "$ROOTFS_DIR"
+sudo mkfs.vfat -F32 -n EFI "${LOOP}p1"
+sudo mkfs.ext4 -F -L rootfs "${LOOP}p2"
+sudo blkid -s UUID -o value "${LOOP}p1" > "$WORKDIR/efi-uuid.txt"
+sudo blkid -s UUID -o value "${LOOP}p2" > "$WORKDIR/root-uuid.txt"
+sudo mount "${LOOP}p2" "$ROOTFS_DIR"
 
 echo "Using AOSC Desktop snapshot: $snapshot"
 curl -fL --retry 3 --retry-delay 2 "$DESKTOP_URL/$archive_name.sha256sum" -o "$checksum_path"
