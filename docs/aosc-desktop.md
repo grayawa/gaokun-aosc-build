@@ -34,6 +34,14 @@ https://wiki.aosc.io/aosc-os/installation/rawimgs/
 The official ARM64 Desktop tarballs are published here:
 https://releases.aosc.io/os-arm64/desktop/
 
+AOSC's KDE 6 update notes describe Plasma Login Manager as the new default:
+https://aosc.io/news/2026-10-11-kde-6.7-update-notes
+However, the current ARM64 stable package index lists plasma-login-manager
+under missing packages while SDDM is available. This image therefore uses
+SDDM on ARM64:
+https://packages.aosc.io/missing/arm64/stable?page=6
+https://packages.aosc.io/repo/arm64/stable?page=61
+
 The AOSC KDE 6 update notes describe Plasma Login Manager as the new default, but the current ARM64 stable package index lists plasma-login-manager as missing while SDDM is available. This image therefore retains SDDM for ARM64:
 https://packages.aosc.io/missing/arm64/stable?page=6
 https://packages.aosc.io/repo/arm64/stable?page=61
@@ -53,8 +61,7 @@ The ESP contains:
 - aosc/<kernel-release>/gaokun3.dtb
 
 The BLS entry explicitly names the DTB. This first version writes the entry
-directly instead of delegating to systemd-boot-friend, whose documented entry
-format does not expose a DTB setting.
+directly so the DTB path and root UUID are explicit and easy to audit.
 
 The root filesystem is ext4. The kernel command line is based on the existing
 Gaokun3 Fedora/Ubuntu image configuration and includes root UUID, rootwait,

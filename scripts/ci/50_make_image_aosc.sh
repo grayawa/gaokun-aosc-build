@@ -78,7 +78,7 @@ mkdir -p /etc/kernel
 printf 'layout=bls\n' > /etc/kernel/install.conf
 printf '%s\n' 'aosc' > /etc/kernel/entry-token
 cat > /etc/kernel/cmdline <<EOF
-root=UUID=$ROOT_UUID rw rootwait clk_ignore_unused pd_ignore_unused arm64.nopauth pcie_aspm.policy=powersupersave efi=noruntime fbcon=rotate:1 usbhid.quirks=0x12d1:0x10b8:0x20000000
+root=UUID=$ROOT_UUID rw rootwait clk_ignore_unused pd_ignore_unused arm64.nopauth pcie_aspm.policy=powersupersave efi=noruntime fbcon=rotate:1 usbhid.quirks=0x12d1:0x10b8:0x20000000 plymouth.enable=0 lsm=landlock,lockdown,yama,loadpin,safesetid,selinux,integrity,bpf
 EOF
 printf 'qcom/%s\n' "$DTB_NAME" > /etc/kernel/devicetree
 
@@ -126,7 +126,8 @@ enable_unit_if_present() {
   fi
 }
 enable_unit_if_present NetworkManager.service
-enable_unit_if_present sddm.service
+systemctl disable plasmalogin.service 2>/dev/null || true
+systemctl enable --force sddm.service
 enable_unit_if_present bluetooth.service
 enable_unit_if_present patch-nvm-bdaddr.service
 systemctl set-default graphical.target
