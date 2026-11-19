@@ -108,9 +108,7 @@ curl -fL --connect-timeout 30 "$DESKTOP_URL/$archive_name" |
 pipeline_status=("${PIPESTATUS[@]}")
 set -e
 hash_status=0
-if ! wait "$hash_pid"; then
-  hash_status=$?
-fi
+wait "$hash_pid" || hash_status=$?
 rm -f "$archive_fifo"
 
 if (( pipeline_status[0] != 0 || pipeline_status[1] != 0 || pipeline_status[2] != 0 || hash_status != 0 )); then
