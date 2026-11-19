@@ -9,11 +9,9 @@ set -euo pipefail
 : "${ROOTFS_DIR:?missing ROOTFS_DIR}"
 : "${ARTIFACT_DIR:?missing ARTIFACT_DIR}"
 : "${IMAGE_FILE:?missing IMAGE_FILE}"
-: "${IMAGE_SIZE:?missing IMAGE_SIZE}"
 
 KREL="$(cat "$WORKDIR/kernel-release.txt")"
 DTB_NAME="sc8280xp-huawei-gaokun3.dtb"
-EFI_END_MIB=1025
 
 [[ "$IMAGE_SIZE" =~ ^[1-9][0-9]*G$ ]] || {
   echo "IMAGE_SIZE must be an integer number of GiB, for example 24G" >&2
@@ -23,15 +21,19 @@ test -s "$ROOTFS_DIR/boot/vmlinuz-$KREL"
 test -s "$ROOTFS_DIR/boot/dtb-$KREL/qcom/$DTB_NAME"
 
 mkdir -p "$ARTIFACT_DIR"
-rm -f "$IMAGE_FILE"
-truncate -s "$IMAGE_SIZE" "$IMAGE_FILE"
-parted -s "$IMAGE_FILE" mklabel gpt
-parted -s "$IMAGE_FILE" mkpart EFI fat32 1MiB "${EFI_END_MIB}MiB"
-parted -s "$IMAGE_FILE" set 1 esp on
-parted -s "$IMAGE_FILE" mkpart rootfs ext4 "${EFI_END_MIB}MiB" 100%
+LOOP="$(cat "$WORKDIR/loop-device.txt")"
+if ! sudo losetup "$LOOP" >/dev/null 2>&1; then
+  LOOP="$(sudo losetup --show -fP "$IMAGE_FILE")"
+  echo "$LOOP" > "$WORKDIR/loop-device.txt"
+fi
 
-LOOP="$(sudo losetup --show -fP "$IMAGE_FILE")"
-MNT=/mnt/ego-aosc
+MNT="$ROOTFS_DIR"
+if ! mountpoint -q "$MNT"; then
+  sudo mount "${LOOP}p2" "$MNT"
+fi
+ROOT_UUID="$(cat "$WORKDIR/root-uuid.txt")"
+EFI_UUID="$(cat "$WORKDIR/efi-uuid.txt")"
+
 cleanup() {
   set +e
   for target in "$MNT/dev/pts" "$MNT/boot/efi" "$MNT/dev" "$MNT/proc" "$MNT/sys" "$MNT/run" "$MNT"; do
@@ -41,22 +43,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
-sudo mkfs.vfat -F32 -n EFI "${LOOP}p1"
-sudo mkfs.ext4 -F -L rootfs "${LOOP}p2"
-EFI_UUID="$(sudo blkid -s UUID -o value "${LOOP}p1")"
-ROOT_UUID="$(sudo blkid -s UUID -o value "${LOOP}p2")"
-
-sudo mkdir -p "$MNT"
-sudo mount "${LOOP}p2" "$MNT"
 sudo mkdir -p "$MNT/boot/efi" "$MNT/dev/pts" "$MNT/proc" "$MNT/sys" "$MNT/run"
 sudo mount "${LOOP}p1" "$MNT/boot/efi"
-sudo rsync -aHAX --numeric-ids \
-  --exclude='/proc/*' --exclude='/sys/*' --exclude='/dev/*' --exclude='/run/*' \
-  "$ROOTFS_DIR/" "$MNT/"
-sudo chown root:root "$MNT"
-sudo chmod 0755 "$MNT"
 
-# Keep device assets, but do not install Mutter's monitors.xml into KDE.
+# The root filesystem was extracted directly into this partition by the
+# previous step; no second staging-tree copy is needed.
 install_common_image_assets "$MNT" "$GAOKUN_DIR" kde
 
 sudo tee "$MNT/etc/fstab" >/dev/null <<EOF
