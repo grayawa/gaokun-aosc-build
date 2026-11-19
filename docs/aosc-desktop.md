@@ -22,6 +22,8 @@ The workflow:
    image's ext4 partition while verifying its SHA-256 checksum.
 4. Installs dracut-ng, NetworkManager, SDDM and the AOSC graphical OOBE wizard
    through the AOSC ARM64 stable repository.
+   Device firmware is merged without overwriting a distribution-provided
+   WCN6855/hw2.1 directory with the repository's hw2.1 symlink.
 5. Installs the kernel modules, Gaokun3 DTB and repository firmware into the
    rootfs, then creates an initramfs with the device drivers and firmware.
 6. Installs systemd-boot and writes a BLS entry with an explicit DTB path.

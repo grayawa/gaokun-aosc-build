@@ -209,9 +209,14 @@ sudo depmod -b "$ROOTFS_DIR" -a "$KREL"
 sudo install -Dm644 "$IMAGE_SOURCE" "$ROOTFS_DIR/boot/vmlinuz-$KREL"
 sudo install -Dm644 "$DTB_SOURCE" "$ROOTFS_DIR/boot/dtb-$KREL/qcom/$DTB_NAME"
 
-# Merge device firmware with the distribution firmware.
+# Merge device firmware with the distribution firmware. Some AOSC snapshots
+# provide WCN6855/hw2.1 as a populated directory, not as the Gaokun symlink.
+# Preserve the distro directory rather than asking rsync to replace it.
 sudo mkdir -p "$ROOTFS_DIR/lib/firmware"
-sudo rsync -a "$GAOKUN_DIR/firmware/" "$ROOTFS_DIR/lib/firmware/"
+sudo bash -euo pipefail -c \
+  'source "$1"; merge_gaokun_firmware "$2" "$3"' \
+  _ "$GAOKUN_DIR/scripts/ci/lib/merge_firmware.sh" \
+  "$GAOKUN_DIR/firmware" "$ROOTFS_DIR/lib/firmware"
 
 sudo install -d "$ROOTFS_DIR/etc/dracut.conf.d"
 sudo tee "$ROOTFS_DIR/etc/dracut.conf.d/90-gaokun3.conf" >/dev/null <<'EOF'
