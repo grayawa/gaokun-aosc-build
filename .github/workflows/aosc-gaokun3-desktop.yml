@@ -1,5 +1,14 @@
 name: Build Image - AOSC OS Desktop Gaokun3
 on:
+  push:
+    branches: [aosc-desktop]
+    paths:
+      - ".github/workflows/aosc-gaokun3-desktop.yml"
+      - "build.env"
+      - "scripts/ci/**"
+      - "scripts/lib/kernel_source.sh"
+      - "firmware/**"
+      - "tools/**"
   workflow_dispatch:
     inputs:
       aosc_snapshot:
@@ -34,8 +43,8 @@ jobs:
       KERN_OUT_EL2: ${{ github.workspace }}/build-aosc/kernel-out-el2
       ROOTFS_DIR: ${{ github.workspace }}/build-aosc/rootfs
       ARTIFACT_DIR: ${{ github.workspace }}/build-aosc/artifacts
-      AOSC_SNAPSHOT: ${{ inputs.aosc_snapshot }}
-      IMAGE_SIZE: ${{ inputs.image_size }}
+      AOSC_SNAPSHOT: ${{ inputs.aosc_snapshot || 'latest' }}
+      IMAGE_SIZE: ${{ inputs.image_size || '24G' }}
       IMAGE_CHUNK_SIZE: 1900M
       BUILD_EL2: "false"
       CCACHE_DIR: ${{ github.workspace }}/.ccache
