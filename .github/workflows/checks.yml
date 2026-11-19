@@ -2,7 +2,7 @@ name: Check build scripts
 on:
   pull_request:
   push:
-    branches: [main, next]
+    branches: [main, next, aosc-desktop]
 permissions:
   contents: read
 jobs:
@@ -17,6 +17,6 @@ jobs:
           bash -n build.sh build.env
           find scripts -name '*.sh' -print0 | xargs -0 -n1 bash -n
       - name: Check new build entry points
-        run: shellcheck -S warning build.sh scripts/lib/kernel_source.sh scripts/ci/20_build_kernel_variants.sh scripts/local/build_kernel.sh
+        run: shellcheck -S warning build.sh scripts/lib/kernel_source.sh scripts/ci/20_build_kernel_variants.sh scripts/ci/30_bootstrap_rootfs_aosc.sh scripts/ci/50_make_image_aosc.sh scripts/ci/60_package_release_aosc.sh scripts/ci/lib/common_image.sh scripts/local/build_kernel.sh tools/kscreen/gaokun-display-setup
       - name: Check source protection and boot entries
         run: python3 -m unittest discover -s tests -v

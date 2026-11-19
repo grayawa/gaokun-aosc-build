@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Gaokun3 Display Setup
+Comment=Apply the portrait panel layout on first Plasma login
+Exec=/usr/local/bin/gaokun-display-setup
+OnlyShowIn=KDE;
+NoDisplay=true
+X-KDE-autostart-phase=2

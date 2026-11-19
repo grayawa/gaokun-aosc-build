@@ -1,0 +1,132 @@
+name: Build Image - AOSC OS Desktop Gaokun3
+on:
+  workflow_dispatch:
+    inputs:
+      aosc_snapshot:
+        description: Official ARM64 Desktop snapshot date (YYYYMMDD) or latest
+        required: true
+        default: latest
+        type: string
+      image_size:
+        description: Raw image size (for example 24G)
+        required: true
+        default: "24G"
+        type: string
+      publish_release:
+        description: Publish the image as a GitHub release
+        required: true
+        default: false
+        type: boolean
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 240
+    env:
+      TZ: UTC
+      GAOKUN_DIR: ${ github.workspace }
+      WORKDIR: ${ github.workspace }}/build-aosc
+      KERN_SRC: ${ github.workspace }}/build-aosc/linux
+      KERN_SRC_BASE: ${ github.workspace }}/build-aosc/linux
+      KERN_SRC_EL2: ${ github.workspace }}/build-aosc/linux-el2
+      KERN_OUT: ${ github.workspace }}/build-aosc/kernel-out
+      KERN_OUT_EL2: ${ github.workspace }}/build-aosc/kernel-out-el2
+      ROOTFS_DIR: ${ github.workspace }}/build-aosc/rootfs
+      ARTIFACT_DIR: ${ github.workspace }}/build-aosc/artifacts
+      AOSC_SNAPSHOT: ${{ inputs.aosc_snapshot }}
+      IMAGE_SIZE: ${{ inputs.image_size }}
+      IMAGE_CHUNK_SIZE: 1900M
+      BUILD_EL2: "false"
+      CCACHE_DIR: ${ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${ github.workspace }}
+    steps:
+      - name: Checkout build repository
+        uses: actions/checkout@v6
+      - name: Load reviewed kernel inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          . ./build.env
+          [[ "$AOSC_SNAPSHOT" == "latest" || "$AOSC_SNAPSHOT" =~ ^[0-9]{8}$ ]] || {
+            echo "AOSC_SNAPSHOT must be latest or YYYYMMDD" >&2
+            exit 2
+          }
+          [[ "$IMAGE_SIZE" =~ ^[1-9][0-9]*G$ ]] || {
+            echo "IMAGE_SIZE must be an integer number of GiB, for example 24G" >&2
+            exit 2
+          }
+          for name in KERNEL_REPOSITORY KERNEL_TAG KERNEL_COMMIT; do
+            printf '%s=%s\n' "$name" "${!name}" >> "$GITHUB_ENV"
+          done
+          echo "IMAGE_FILE=$WORKDIR/aosc-desktop-${AOSC_SNAPSHOT}-gaokun3.img" >> "$GITHUB_ENV"
+      - name: Checkout pinned gaokun3 kernel
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.KERNEL_REPOSITORY }}
+          ref: ${{ env.KERNEL_COMMIT }}
+          fetch-depth: 1
+          path: build-aosc/linux
+      - name: Install host build dependencies
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            git make gcc bc bison flex cpio rsync kmod \
+            libssl-dev libelf-dev dwarves ccache \
+            curl parted dosfstools e2fsprogs zstd xz-utils python3
+      - name: Prepare workspace
+        run: |
+          set -euxo pipefail
+          mkdir -p "$WORKDIR" "$ROOTFS_DIR" "$ARTIFACT_DIR"
+      - name: Restore kernel ccache
+        uses: actions/cache@v5
+        with:
+          path: .ccache
+          key: gaokun3-aosc-kernel-${{ env.KERNEL_COMMIT }}-${{ hashFiles('build.env', 'scripts/ci/20_build_kernel_variants.sh', 'firmware/**') }}
+          restore-keys: |
+            gaokun3-aosc-kernel-${{ env.KERNEL_COMMIT }}-
+            gaokun3-aosc-kernel-
+      - name: Build standard Gaokun3 kernel
+        run: |
+          set -euxo pipefail
+          chmod +x scripts/ci/20_build_kernel_variants.sh
+          scripts/ci/20_build_kernel_variants.sh
+      - name: Bootstrap AOSC Desktop rootfs and install device kernel
+        run: |
+          chmod +x scripts/ci/30_bootstrap_rootfs_aosc.sh
+          scripts/ci/30_bootstrap_rootfs_aosc.sh
+      - name: Create GPT image and configure systemd-boot
+        run: |
+          chmod +x scripts/ci/50_make_image_aosc.sh
+          scripts/ci/50_make_image_aosc.sh
+      - name: Compress image and prepare release metadata
+        id: package
+        run: |
+          chmod +x scripts/ci/60_package_release_aosc.sh
+          scripts/ci/60_package_release_aosc.sh
+          echo "tag_name=$(cat "$WORKDIR/tag-name.txt")" >> "$GITHUB_OUTPUT"
+          echo "artifact_dir=$ARTIFACT_DIR" >> "$GITHUB_OUTPUT"
+          echo "package_glob=$(cat "$WORKDIR/package-glob.txt")" >> "$GITHUB_OUTPUT"
+          echo "release_body_file=$(cat "$WORKDIR/release-body-file.txt")" >> "$GITHUB_OUTPUT"
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: aosc-gaokun3-desktop
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            ${{ steps.package.outputs.artifact_dir }}/${{ steps.package.outputs.package_glob }}
+            ${{ steps.package.outputs.artifact_dir }}/SHA256SUMS
+            ${{ steps.package.outputs.artifact_dir }}/release-body.md
+      - name: Publish GitHub Release
+        if: inputs.publish_release
+        uses: softprops/action-gh-release@v2.6.1
+        with:
+          tag_name: ${{ steps.package.outputs.tag_name }}
+          name: AOSC OS Desktop - gaokun3 - ${{ env.KERNEL_TAG }}
+          body_path: ${{ steps.package.outputs.artifact_dir }}/${{ steps.package.outputs.release_body_file }}
+          files: |
+            ${{ steps.package.outputs.artifact_dir }}/${{ steps.package.outputs.package_glob }}
+            ${{ steps.package.outputs.artifact_dir }}/SHA256SUMS
+            ${{ steps.package.outputs.artifact_dir }}/release-body.md

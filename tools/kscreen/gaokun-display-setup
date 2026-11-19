@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eu
+
+done_file="${XDG_CONFIG_HOME:-$HOME/.config}/gaokun3-display-setup.done"
+[ -e "$done_file" ] && exit 0
+command -v kscreen-doctor >/dev/null 2>&1 || exit 0
+
+attempt=0
+while [ "$attempt" -lt 20 ]; do
+  outputs="$(kscreen-doctor -o 2>/dev/null || true)"
+  if [ -n "$outputs" ]; then
+    if printf '%s\n' "$outputs" | grep -Fq 'DSI-1'; then
+      if kscreen-doctor output.DSI-1.rotation.right output.DSI-1.scale.2; then
+        mkdir -p "$(dirname "$done_file")"
+        : > "$done_file"
+      fi
+    fi
+    exit 0
+  fi
+  attempt=$((attempt + 1))
+  sleep 1
+done
+exit 0

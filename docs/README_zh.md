@@ -65,6 +65,7 @@
 - Awesome Gaokun3：：[English](awesome_gaokun3_en.md) | [中文](awesome_gaokun3_zh.md)
 - 历史构建指南 – Fedora 44：[English](matebook_ego_build_guide_fedora44_en.md) | [中文](matebook_ego_build_guide_fedora44_zh.md)
 - 历史构建指南 – Ubuntu 26.04：[English](matebook_ego_build_guide_ubuntu26.04_en.md) | [中文](matebook_ego_build_guide_ubuntu26.04_zh.md)
+- AOSC OS Desktop ARM64 实验性镜像：[构建说明](aosc-desktop.md) | [GitHub Actions 工作流](../.github/workflows/aosc-gaokun3-desktop.yml)
 
 ## 功能支持
 

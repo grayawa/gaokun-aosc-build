@@ -36,6 +36,7 @@ install_module_config() {
 install_common_image_assets() {
   local rootfs_dir="$1"
   local gaokun_dir="$2"
+  local display_profile="${3:-gnome}"
   local executable_assets=(
     "tools/bluetooth/patch-nvm-bdaddr.py:/usr/local/bin/patch-nvm-bdaddr.py"
     "tools/touchscreen-tuner/touchscreen-tune:/usr/local/bin/touchscreen-tune"
@@ -50,19 +51,29 @@ install_common_image_assets() {
     "tools/touchscreen-tuner/tune.py:/usr/local/lib/gaokun-touchscreen-tuner/tune.py"
     "tools/touchscreen-tuner/tune-icon.svg:/usr/local/lib/gaokun-touchscreen-tuner/tune-icon.svg"
     "tools/touchscreen-tuner/touchscreen-tune.desktop:/usr/share/applications/touchscreen-tune.desktop"
-    # The panel is portrait and has to be rotated before anyone has logged in.
-    # mutter reads this system-level file in every session, so it covers the
-    # first-boot setup screen and the login screen, which run as their own users,
-    # as well as accounts created later. A user changing rotation in Settings
-    # writes ~/.config/monitors.xml, which takes precedence.
-    "tools/image-assets/etc/xdg/monitors.xml:/etc/xdg/monitors.xml"
   )
+  case "$display_profile" in
+    gnome)
+      # Mutter reads this system-level file in every session, including GDM.
+      data_assets+=("tools/image-assets/etc/xdg/monitors.xml:/etc/xdg/monitors.xml")
+      ;;
+    kde)
+      # KScreen is configured from the user's Plasma session, not Mutter's XML.
+      executable_assets+=("tools/kscreen/gaokun-display-setup:/usr/local/bin/gaokun-display-setup")
+      data_assets+=("tools/kscreen/gaokun-display-setup.desktop:/etc/xdg/autostart/gaokun-display-setup.desktop")
+      ;;
+    *)
+      echo "unknown display profile: $display_profile" >&2
+      return 1
+      ;;
+  esac
   local asset src dest
 
   sudo mkdir -p \
     "$rootfs_dir/etc/udev/rules.d" \
     "$rootfs_dir/etc/systemd/system" \
     "$rootfs_dir/etc/xdg" \
+    "$rootfs_dir/etc/xdg/autostart" \
     "$rootfs_dir/etc/gaokun" \
     "$rootfs_dir/usr/local/bin" \
     "$rootfs_dir/usr/local/lib/gaokun-touchscreen-tuner" \
