@@ -18,7 +18,7 @@ The workflow:
 
 1. Downloads the official AOSC ARM64 Desktop rootfs tarball and verifies its
    SHA-256 sidecar.
-2. Installs dracut-ng, NetworkManager and Plasma Login Manager through the AOSC apt repository.
+2. Installs dracut-ng, NetworkManager and SDDM through the AOSC ARM64 stable repository.
 3. Builds the standard kernel at the commit pinned in build.env.
 4. Installs the kernel modules, Gaokun3 DTB and repository firmware into the
    rootfs.
@@ -34,8 +34,12 @@ https://wiki.aosc.io/aosc-os/installation/rawimgs/
 The official ARM64 Desktop tarballs are published here:
 https://releases.aosc.io/os-arm64/desktop/
 
+The AOSC KDE 6 update notes describe Plasma Login Manager as the new default, but the current ARM64 stable package index lists plasma-login-manager as missing while SDDM is available. This image therefore retains SDDM for ARM64:
+https://packages.aosc.io/missing/arm64/stable?page=6
+https://packages.aosc.io/repo/arm64/stable?page=61
+
 The October 2026 KDE 6 update switched the default login manager from SDDM to Plasma Login Manager:
-https://aosc.io/news/2026-09-06-minutes-kde-6.7-review-session-3
+https://aosc.io/news/2026-10-11-kde-6.7-update-notes
 
 ## Boot layout
 
@@ -63,7 +67,7 @@ image. A KDE autostart helper attempts to apply the internal DSI-1 output's
 right rotation and 2x scale on the first Plasma login. It records a per-user
 marker after success, so later logins do not overwrite the user's settings.
 
-This does not configure the Plasma Login Manager greeter. If the panel connector is not named
+This does not configure the SDDM greeter. If the panel connector is not named
 DSI-1 on a particular hardware revision, the helper exits without changing
 anything and the display can be configured manually in System Settings.
 

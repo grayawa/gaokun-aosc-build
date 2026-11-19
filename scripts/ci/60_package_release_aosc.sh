@@ -38,7 +38,7 @@ if [[ "$(stat -c '%s' "$ZST_FILE")" -lt "$SPLIT_THRESHOLD_BYTES" ]]; then
 
 - The image uses the standard Gaokun3 kernel; EL2 is not included.
 - The official AOSC Desktop userland is retained. This build does not inject a project-specific user name or password.
-- The KDE first-login helper attempts to rotate DSI-1 right and set 2x scaling. The Plasma Login Manager greeter is not configured by that helper.
+- The KDE first-login helper attempts to rotate DSI-1 right and set 2x scaling. The SDDM greeter is not configured by that helper.
 - This is a build artifact, not proof of successful boot on every MateBook E Go hardware revision.
 EOF
 else
@@ -63,7 +63,7 @@ else
 
 - The image uses the standard Gaokun3 kernel; EL2 is not included.
 - The official AOSC Desktop userland is retained. This build does not inject a project-specific user name or password.
-- The KDE first-login helper attempts to rotate DSI-1 right and set 2x scaling. The Plasma Login Manager greeter is not configured by that helper.
+- The KDE first-login helper attempts to rotate DSI-1 right and set 2x scaling. The SDDM greeter is not configured by that helper.
 - This is a build artifact, not proof of successful boot on every MateBook E Go hardware revision.
 
 ## Reassemble and decompress

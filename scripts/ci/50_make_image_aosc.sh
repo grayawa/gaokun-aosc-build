@@ -126,7 +126,7 @@ enable_unit_if_present() {
   fi
 }
 enable_unit_if_present NetworkManager.service
-enable_unit_if_present plasmalogin.service
+enable_unit_if_present sddm.service
 enable_unit_if_present bluetooth.service
 enable_unit_if_present patch-nvm-bdaddr.service
 systemctl set-default graphical.target
