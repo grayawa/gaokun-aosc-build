@@ -17,9 +17,6 @@ DTB_NAME="sc8280xp-huawei-gaokun3.dtb"
   echo "IMAGE_SIZE must be an integer number of GiB, for example 24G" >&2
   exit 2
 }
-test -s "$ROOTFS_DIR/boot/vmlinuz-$KREL"
-test -s "$ROOTFS_DIR/boot/dtb-$KREL/qcom/$DTB_NAME"
-
 mkdir -p "$ARTIFACT_DIR"
 LOOP="$(cat "$WORKDIR/loop-device.txt")"
 if ! sudo losetup "$LOOP" >/dev/null 2>&1; then
@@ -33,6 +30,9 @@ if ! mountpoint -q "$MNT"; then
 fi
 ROOT_UUID="$(cat "$WORKDIR/root-uuid.txt")"
 EFI_UUID="$(cat "$WORKDIR/efi-uuid.txt")"
+
+test -s "$ROOTFS_DIR/boot/vmlinuz-$KREL"
+test -s "$ROOTFS_DIR/boot/dtb-$KREL/qcom/$DTB_NAME"
 
 cleanup() {
   set +e
