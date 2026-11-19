@@ -58,8 +58,9 @@ fi
 
 snapshot="${archive_name#aosc-os_desktop_}"
 snapshot="${snapshot%_arm64.tar.xz}"
-archive_path="$WORKDIR/$archive_name"
-checksum_path="$archive_path.sha256sum"
+checksum_path="$WORKDIR/$archive_name.sha256sum"
+archive_fifo="$WORKDIR/aosc-rootfs.tar.xz.fifo"
+actual_checksum="$WORKDIR/aosc-rootfs.actual.sha256"
 
 IMAGE_SIZE="${IMAGE_SIZE:?missing IMAGE_SIZE}"
 [[ "$IMAGE_SIZE" =~ ^[1-9][0-9]*G$ ]] || {
@@ -87,22 +88,43 @@ sudo blkid -s UUID -o value "${LOOP}p2" > "$WORKDIR/root-uuid.txt"
 sudo mount "${LOOP}p2" "$ROOTFS_DIR"
 
 echo "Using AOSC Desktop snapshot: $snapshot"
-curl -fL --retry 3 --retry-delay 2 "$DESKTOP_URL/$archive_name" -o "$archive_path"
 curl -fL --retry 3 --retry-delay 2 "$DESKTOP_URL/$archive_name.sha256sum" -o "$checksum_path"
-(
-  cd "$WORKDIR"
-  sha256sum -c "$(basename "$checksum_path")"
-)
+expected_checksum="$(awk 'NR == 1 { print $1 }' "$checksum_path")"
+[[ "$expected_checksum" =~ ^[[:xdigit:]]{64}$ ]] || {
+  echo "Invalid SHA-256 sidecar for $archive_name" >&2
+  exit 1
+}
 
-# AOSC rootfs tarballs are unpacked directly at the target root. Preserve
-# numeric ownership, ACLs and extended attributes; do not strip path components.
-sudo tar -xJpf "$archive_path" \
-  -C "$ROOTFS_DIR" \
-  --numeric-owner \
-  --xattrs \
-  --acls
-# Free the compressed source before package installation and image finalization.
-rm -f "$archive_path" "$checksum_path"
+# Stream the large tarball straight into the image while hashing the same
+# bytes through a FIFO. This avoids storing a second 5 GiB archive on the runner.
+rm -f "$archive_fifo" "$actual_checksum"
+mkfifo "$archive_fifo"
+sha256sum < "$archive_fifo" > "$actual_checksum" &
+hash_pid=$!
+set +e
+curl -fL --connect-timeout 30 "$DESKTOP_URL/$archive_name" |
+  tee "$archive_fifo" |
+  sudo tar -xJpf - -C "$ROOTFS_DIR" --numeric-owner --xattrs --acls
+pipeline_status=("${PIPESTATUS[@]}")
+set -e
+hash_status=0
+if ! wait "$hash_pid"; then
+  hash_status=$?
+fi
+rm -f "$archive_fifo"
+
+if (( pipeline_status[0] != 0 || pipeline_status[1] != 0 || pipeline_status[2] != 0 || hash_status != 0 )); then
+  echo "Failed to stream and extract $archive_name" >&2
+  exit 1
+fi
+actual_hash="$(awk 'NR == 1 { print $1 }' "$actual_checksum")"
+if [[ "$actual_hash" != "$expected_checksum" ]]; then
+  echo "SHA-256 mismatch for $archive_name" >&2
+  echo "Expected: $expected_checksum" >&2
+  echo "Actual:   $actual_hash" >&2
+  exit 1
+fi
+rm -f "$checksum_path" "$actual_checksum"
 
 if ! grep -Eq '^ID="?aosc"?
   echo "The downloaded archive does not look like an AOSC OS rootfs." >&2
