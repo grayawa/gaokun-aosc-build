@@ -110,8 +110,8 @@ tablet.
 
 Run [the experimental build workflow](../.github/workflows/aosc-gaokun3-desktop.yml)
 on branch `aosc-desktop`. Its downloadable `aosc-gaokun3-desktop` artifact
-is a ZIP produced by GitHub Actions, **not the disk image itself**. Open the ZIP
-and extract its files; the important one is a **single**
+is now a direct file download provided by `actions/upload-artifact@v7` with
+`archive: false`, **not a ZIP**. The file to select is a **single**
 `aosc-desktop-<date>-gaokun3.img.zst`. Do not open that compressed image as an
 archive and try to write its embedded EFI/rootfs partitions separately.
 

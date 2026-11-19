@@ -132,17 +132,22 @@ jobs:
           echo "package_glob=$(cat "$WORKDIR/package-glob.txt")" >> "$GITHUB_OUTPUT"
           echo "direct_image_name=$(cat "$WORKDIR/direct-image-name.txt")" >> "$GITHUB_OUTPUT"
           echo "release_body_file=$(cat "$WORKDIR/release-body-file.txt")" >> "$GITHUB_OUTPUT"
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v6
+      - name: Upload flashable image directly (no ZIP)
+        uses: actions/upload-artifact@v7
         with:
-          name: aosc-gaokun3-desktop
+          path: ${{ steps.package.outputs.artifact_dir }}/${{ steps.package.outputs.direct_image_name }}
+          archive: false
           if-no-files-found: error
           retention-days: 7
+      - name: Upload checksums and build notes
+        uses: actions/upload-artifact@v7
+        with:
+          name: aosc-gaokun3-metadata
           path: |
-            ${{ steps.package.outputs.artifact_dir }}/${{ steps.package.outputs.direct_image_name }}
             ${{ steps.package.outputs.artifact_dir }}/SHA256SUMS
             ${{ steps.package.outputs.artifact_dir }}/release-body.md
-          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
       - name: Publish GitHub Release
         if: inputs.publish_release
         uses: softprops/action-gh-release@v2.6.1
