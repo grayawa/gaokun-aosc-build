@@ -85,7 +85,7 @@ anything and the display can be configured manually in System Settings.
 
 ## Scope and limitations
 
-- EL2 is deliberately disabled. The repository's EL2 migration is not ready.
+- EL2 is included as an **experimental optional boot entry**, alongside default EL1. It is not yet validated on the 2022 3 GHz model.
 - The kernel and DTB are the currently pinned Gaokun3 2023 target. The 2022
   3 GHz MateBook E Go variant has not been independently validated by this
   workflow; a successful CI build does not prove that its panel, EC, touch,
@@ -109,8 +109,8 @@ tablet.
 ## Flash-ready GitHub Actions image
 
 Run [the experimental build workflow](../.github/workflows/aosc-gaokun3-desktop.yml)
-on branch `aosc-desktop`. Its downloadable `aosc-gaokun3-desktop` artifact
-is now a direct file download provided by `actions/upload-artifact@v7` with
+on branch `aosc-desktop`. Its downloadable flashable-image artifact
+is a direct file download provided by `actions/upload-artifact@v7` with
 `archive: false`, **not a ZIP**. The file to select is a **single**
 `aosc-desktop-<date>-gaokun3.img.zst`. Do not open that compressed image as an
 archive and try to write its embedded EFI/rootfs partitions separately.
@@ -138,10 +138,13 @@ On Android, MT Manager may identify subimages such as `0.EFI.img` and
 `1.rootfs.img` inside the raw disk image. These are partition *views* of
 the complete GPT disk. They are not separate flash targets.
 
+The separately uploaded `aosc-gaokun3-metadata` artifact contains the checksum
+file `SHA256SUMS` and the release notes. Download it for verification.
+
 GitHub Releases restrict each individual asset to less than 2 GiB. The
 `publish_release` option therefore still splits large `.img.zst` files into
 pieces, with `SHA256SUMS.parts`. GitHub Actions artifacts now keep a
-complete, unbroken compressed raw image inside the artifact ZIP.
+complete, unbroken compressed raw image as a directly downloadable file (no ZIP).
 
 ## Optional EL2 mode
 
