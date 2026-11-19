@@ -47,11 +47,10 @@ curl -fL --retry 3 --retry-delay 2 "$DESKTOP_URL/$archive_name.sha256sum" -o "$c
   sha256sum -c "$(basename "$checksum_path")"
 )
 
-# AOSC's ARM image recipes unpack rootfs tarballs with one leading directory
-# component removed. Keep numeric ownership, ACLs and extended attributes.
+# AOSC rootfs tarballs are unpacked directly at the target root. Preserve
+# numeric ownership, ACLs and extended attributes; do not strip path components.
 sudo tar -xJpf "$archive_path" \
   -C "$ROOTFS_DIR" \
-  --strip-components=1 \
   --numeric-owner \
   --xattrs \
   --acls
