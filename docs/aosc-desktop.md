@@ -18,7 +18,7 @@ The workflow:
 
 1. Downloads the official AOSC ARM64 Desktop rootfs tarball and verifies its
    SHA-256 sidecar.
-2. Installs dracut-ng, NetworkManager and SDDM through the AOSC ARM64 stable repository.
+2. Installs dracut-ng, NetworkManager, SDDM and the AOSC graphical OOBE wizard through the AOSC ARM64 stable repository.
 3. Builds the standard kernel at the commit pinned in build.env.
 4. Installs the kernel modules, Gaokun3 DTB and repository firmware into the
    rootfs.

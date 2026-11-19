@@ -118,9 +118,14 @@ sudo mount --bind /run "$ROOTFS_DIR/run"
 
 sudo chroot "$ROOTFS_DIR" /usr/bin/env DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get update
 sudo chroot "$ROOTFS_DIR" /usr/bin/env DEBIAN_FRONTEND=noninteractive \
-  /usr/bin/apt-get install -y --no-install-recommends dracut-ng networkmanager sddm
+  /usr/bin/apt-get install -y --no-install-recommends dracut-ng networkmanager sddm aosc-os-oobe-gui
 sudo chroot "$ROOTFS_DIR" /usr/bin/env sh -c \
   'command -v dracut >/dev/null && command -v bootctl >/dev/null'
+# The Desktop OOBE unit is gated by ConditionFirstBoot and kde-base.list. It
+# runs before SDDM, creates the first user, then removes itself and reboots.
+test -f "$ROOTFS_DIR/var/lib/dpkg/info/kde-base.list"
+test -s "$ROOTFS_DIR/usr/lib/systemd/system/aosc-os-oobe-gui.service"
+test -e "$ROOTFS_DIR/usr/lib/systemd/system/first-boot-complete.target.wants/aosc-os-oobe-gui.service"
 
 # Replace any generic image kernel with the pinned device kernel. The kernel
 # release itself is pinned by build.env and the checked-out kernel commit.
