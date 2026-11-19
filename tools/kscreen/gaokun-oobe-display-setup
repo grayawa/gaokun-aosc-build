@@ -1,0 +1,21 @@
+#!/bin/sh
+# AOSC OOBE runs a standalone X11 session before user Plasma/KScreen exists.
+# Gaokun3's DSI panel is physically portrait, but the device is used landscape.
+# Match the image's GNOME and Plasma "right" rotation setting.
+set -u
+
+command -v xrandr >/dev/null 2>&1 || exit 0
+outputs="$(xrandr --query 2>/dev/null)" || exit 0
+
+# A disconnected output must never be selected. Only rotate internal DSI
+# connectors, never a plugged-in HDMI/DisplayPort/USB-C monitor.
+connector="$(printf '%s\n' "$outputs" |
+  awk '$2 == "connected" && $1 ~ /^DSI(-|[0-9])/ {print $1; exit}')"
+[ -n "$connector" ] || exit 0
+
+if xrandr --output "$connector" --rotate right; then
+  logger -t gaokun3-oobe "Rotated internal X11 output $connector right" 2>/dev/null || true
+else
+  logger -t gaokun3-oobe "Could not rotate internal X11 output $connector" 2>/dev/null || true
+fi
+exit 0

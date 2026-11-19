@@ -161,3 +161,18 @@ This is adapted from a 2023 Gaokun3-oriented build. Neither EL1 nor EL2
 is verified on the MateBook E Go 2022 3 GHz performance variant. EL2 may
 lose Venus hardware video decode and may fail before KVM is usable.
 Boot from USB first; do not overwrite the internal Windows disk.
+
+## First-boot OOBE screen rotation
+
+The AOSC graphical OOBE uses its **own X11 session** (via `xinit` and
+`kwin_x11`) before a KDE user account exists. The normal per-user KScreen
+autostart cannot affect it. The built image patches the packaged
+`aosc-os-oobe-gui-launcher` after its `xsetroot` call to run
+`/usr/local/bin/gaokun-oobe-display-setup`, before the OOBE DPI calculation
+and window manager startup. The helper finds a **connected internal DSI**
+output, uses `xrandr --output DSI-1 --rotate right` (or the actual DSI name)
+and leaves external displays unchanged. The helper exits successfully if
+Xrandr isn't available or rotation is unsupported, so first-boot setup is not
+blocked. TTY rotation remains controlled by `fbcon=rotate:1`.
+User KDE sessions are still configured by the existing KScreen autostart.
+This image-side patch doesn't retroactively modify previously flashed media.

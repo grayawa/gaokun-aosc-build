@@ -207,6 +207,25 @@ test -f "$ROOTFS_DIR/var/lib/dpkg/info/kde-base.list"
 test -s "$ROOTFS_DIR/usr/lib/systemd/system/aosc-os-oobe-gui.service"
 test -e "$ROOTFS_DIR/usr/lib/systemd/system/first-boot-complete.target.wants/aosc-os-oobe-gui.service"
 
+# AOSC's graphical OOBE launches its own X11 session via xinit/kwin_x11;
+# Plasma's per-user KScreen autostart never runs in that first-boot session.
+# Rotate the internal portrait DSI panel BEFORE upstream's DPI detection.
+# Keep the original OOBE flow and its self-uninstall behavior intact.
+oobe_launcher="$ROOTFS_DIR/usr/bin/aosc-os-oobe-gui-launcher"
+oobe_rotation_hook="/usr/local/bin/gaokun-oobe-display-setup"
+sudo test -s "$oobe_launcher"
+sudo install -Dm755 \
+  "$GAOKUN_DIR/tools/kscreen/gaokun-oobe-display-setup" \
+  "$ROOTFS_DIR$oobe_rotation_hook"
+if ! sudo grep -Fxq "$oobe_rotation_hook" "$oobe_launcher"; then
+  if ! sudo grep -Fxq 'xsetroot -cursor_name left_ptr' "$oobe_launcher"; then
+    echo "AOSC OOBE launcher changed: cursor initialization hook missing" >&2
+    exit 1
+  fi
+  sudo sed -i '/^xsetroot -cursor_name left_ptr$/a /usr/local/bin/gaokun-oobe-display-setup' "$oobe_launcher"
+fi
+sudo grep -Fxq "$oobe_rotation_hook" "$oobe_launcher"
+
 # Install the pinned device kernel and its modules into the target rootfs.
 sudo mkdir -p "$ROOTFS_DIR/boot"
 sudo find "$ROOTFS_DIR/boot" -maxdepth 1 -type f \
