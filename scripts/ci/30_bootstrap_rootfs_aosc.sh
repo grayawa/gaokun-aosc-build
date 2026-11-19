@@ -148,7 +148,8 @@ EOF
 
 echo "$snapshot" > "$WORKDIR/aosc-snapshot.txt"
 if [[ -n "${GITHUB_ENV:-}" ]]; then
-  echo "AOSC_SNAPSHOT_RESOLVED=$snapshot" >> "$GITHUB_ENV"
+  echo "AOSC_SNAPSHOT=$snapshot" >> "$GITHUB_ENV"
+  echo "IMAGE_FILE=$WORKDIR/aosc-desktop-$snapshot-gaokun3.img" >> "$GITHUB_ENV"
 fi
 trap - EXIT
 cleanup_chroot
