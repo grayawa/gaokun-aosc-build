@@ -119,7 +119,7 @@ sudo mount --bind /run "$ROOTFS_DIR/run"
 
 sudo chroot "$ROOTFS_DIR" /usr/bin/env DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get update
 sudo chroot "$ROOTFS_DIR" /usr/bin/env DEBIAN_FRONTEND=noninteractive \
-  /usr/bin/apt-get install -y --no-install-recommends dracut-ng networkmanager sddm
+  /usr/bin/apt-get install -y --no-install-recommends dracut-ng networkmanager plasma-login-manager
 sudo chroot "$ROOTFS_DIR" /usr/bin/env sh -c \
   'command -v dracut >/dev/null && command -v bootctl >/dev/null'
 
