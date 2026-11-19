@@ -46,7 +46,7 @@ jobs:
       AOSC_SNAPSHOT: ${{ inputs.aosc_snapshot || 'latest' }}
       IMAGE_SIZE: ${{ inputs.image_size || '24G' }}
       IMAGE_CHUNK_SIZE: 1900M
-      BUILD_EL2: "false"
+      BUILD_EL2: "true"
       CCACHE_DIR: ${{ github.workspace }}/.ccache
       CCACHE_MAXSIZE: 2G
       CCACHE_BASEDIR: ${{ github.workspace }}
@@ -66,7 +66,11 @@ jobs:
             echo "IMAGE_SIZE must be an integer number of GiB, for example 24G" >&2
             exit 2
           }
-          for name in KERNEL_REPOSITORY KERNEL_TAG KERNEL_COMMIT; do
+          if [[ "$BUILD_EL2" == true && -z "$KERNEL_EL2_COMMIT" ]]; then
+            echo "EL2 kernel source not pinned" >&2
+            exit 1
+          fi
+          for name in KERNEL_REPOSITORY KERNEL_TAG KERNEL_COMMIT KERNEL_EL2_COMMIT; do
             printf '%s=%s\n' "$name" "${!name}" >> "$GITHUB_ENV"
           done
           echo "IMAGE_FILE=$WORKDIR/aosc-desktop-${AOSC_SNAPSHOT}-gaokun3.img" >> "$GITHUB_ENV"
@@ -77,6 +81,14 @@ jobs:
           ref: ${{ env.KERNEL_COMMIT }}
           fetch-depth: 1
           path: build-aosc/linux
+      - name: Checkout pinned EL2 kernel
+        if: env.BUILD_EL2 == 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.KERNEL_REPOSITORY }}
+          ref: ${{ env.KERNEL_EL2_COMMIT }}
+          fetch-depth: 1
+          path: build-aosc/linux-el2
       - name: Install host build dependencies
         run: |
           set -euxo pipefail
@@ -118,6 +130,7 @@ jobs:
           echo "tag_name=$(cat "$WORKDIR/tag-name.txt")" >> "$GITHUB_OUTPUT"
           echo "artifact_dir=$ARTIFACT_DIR" >> "$GITHUB_OUTPUT"
           echo "package_glob=$(cat "$WORKDIR/package-glob.txt")" >> "$GITHUB_OUTPUT"
+          echo "direct_image_name=$(cat "$WORKDIR/direct-image-name.txt")" >> "$GITHUB_OUTPUT"
           echo "release_body_file=$(cat "$WORKDIR/release-body-file.txt")" >> "$GITHUB_OUTPUT"
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
@@ -126,9 +139,10 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           path: |
-            ${{ steps.package.outputs.artifact_dir }}/${{ steps.package.outputs.package_glob }}
+            ${{ steps.package.outputs.artifact_dir }}/${{ steps.package.outputs.direct_image_name }}
             ${{ steps.package.outputs.artifact_dir }}/SHA256SUMS
             ${{ steps.package.outputs.artifact_dir }}/release-body.md
+          compression-level: 0
       - name: Publish GitHub Release
         if: inputs.publish_release
         uses: softprops/action-gh-release@v2.6.1
@@ -138,5 +152,5 @@ jobs:
           body_path: ${{ steps.package.outputs.artifact_dir }}/${{ steps.package.outputs.release_body_file }}
           files: |
             ${{ steps.package.outputs.artifact_dir }}/${{ steps.package.outputs.package_glob }}
-            ${{ steps.package.outputs.artifact_dir }}/SHA256SUMS
+            ${{ steps.package.outputs.artifact_dir }}/SHA256SUMS.parts
             ${{ steps.package.outputs.artifact_dir }}/release-body.md

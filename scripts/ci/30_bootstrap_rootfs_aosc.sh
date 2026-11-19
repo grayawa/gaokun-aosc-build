@@ -133,6 +133,15 @@ if ! grep -Eq '^ID="?aosc"?$' "$ROOTFS_DIR/etc/os-release"; then
 fi
 
 KREL="$(cat "$WORKDIR/kernel-release.txt")"
+BUILD_EL2="${BUILD_EL2:-false}"
+KREL_EL2=""
+if [[ "$BUILD_EL2" == "true" ]]; then
+  : "${KERN_SRC_EL2:?missing KERN_SRC_EL2}"
+  : "${KERN_OUT_EL2:?missing KERN_OUT_EL2}"
+  KREL_EL2="$(cat "$WORKDIR/kernel-release-el2.txt")"
+  test -s "$KERN_OUT_EL2/arch/arm64/boot/Image"
+  test -s "$KERN_OUT_EL2/arch/arm64/boot/dts/qcom/sc8280xp-huawei-gaokun3-el2.dtb"
+fi
 DTB_NAME="sc8280xp-huawei-gaokun3.dtb"
 DTB_SOURCE="$KERN_OUT/arch/arm64/boot/dts/qcom/$DTB_NAME"
 IMAGE_SOURCE="$KERN_OUT/arch/arm64/boot/Image"
@@ -208,6 +217,17 @@ sudo depmod -b "$ROOTFS_DIR" -a "$KREL"
 
 sudo install -Dm644 "$IMAGE_SOURCE" "$ROOTFS_DIR/boot/vmlinuz-$KREL"
 sudo install -Dm644 "$DTB_SOURCE" "$ROOTFS_DIR/boot/dtb-$KREL/qcom/$DTB_NAME"
+if [[ "$BUILD_EL2" == "true" ]]; then
+  sudo make -C "$KERN_SRC_EL2" O="$KERN_OUT_EL2" ARCH=arm64 \
+    INSTALL_MOD_PATH="$ROOTFS_DIR" modules_install
+  sudo rm -f "$ROOTFS_DIR/lib/modules/$KREL_EL2/build" "$ROOTFS_DIR/lib/modules/$KREL_EL2/source"
+  sudo depmod -b "$ROOTFS_DIR" -a "$KREL_EL2"
+  sudo install -Dm644 "$KERN_OUT_EL2/arch/arm64/boot/Image" \
+    "$ROOTFS_DIR/boot/vmlinuz-$KREL_EL2"
+  sudo install -Dm644 \
+    "$KERN_OUT_EL2/arch/arm64/boot/dts/qcom/sc8280xp-huawei-gaokun3-el2.dtb" \
+    "$ROOTFS_DIR/boot/dtb-$KREL_EL2/qcom/sc8280xp-huawei-gaokun3-el2.dtb"
+fi
 
 # Merge device firmware with the distribution firmware. Some AOSC snapshots
 # provide WCN6855/hw2.1 as a populated directory, not as the Gaokun symlink.
@@ -228,6 +248,9 @@ EOF
 # The target image now contains everything needed from the kernel build tree.
 # Drop the source and object files before finalizing the initramfs to save disk.
 rm -rf "$KERN_SRC" "$KERN_OUT"
+if [[ "$BUILD_EL2" == "true" ]]; then
+  rm -rf "$KERN_SRC_EL2" "$KERN_OUT_EL2"
+fi
 
 echo "$snapshot" > "$WORKDIR/aosc-snapshot.txt"
 if [[ -n "${GITHUB_ENV:-}" ]]; then

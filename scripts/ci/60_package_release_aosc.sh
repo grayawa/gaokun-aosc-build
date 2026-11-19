@@ -8,83 +8,65 @@ set -euo pipefail
 : "${KERNEL_TAG:?missing KERNEL_TAG}"
 
 KREL="$(cat "$WORKDIR/kernel-release.txt")"
-AOSC_SNAPSHOT="$(cat "$WORKDIR/aosc-snapshot.txt")"
-IMAGE_BASENAME="$(basename "$IMAGE_FILE")"
-ZST_FILE="$ARTIFACT_DIR/${IMAGE_BASENAME}.zst"
-RELEASE_BODY_FILE="$ARTIFACT_DIR/release-body.md"
-SPLIT_THRESHOLD_BYTES=$((2 * 1024 * 1024 * 1024))
-
+SNAPSHOT="$(cat "$WORKDIR/aosc-snapshot.txt")"
+BASE="$(basename "$IMAGE_FILE")"
+ZST_NAME="${BASE}.zst"
+ZST_FILE="$ARTIFACT_DIR/$ZST_NAME"
+RELEASE_BODY="$ARTIFACT_DIR/release-body.md"
+SPLIT_LIMIT=$((2 * 1024 * 1024 * 1024))
+EL2_KREL=""
+EL2_NOTE="EL2: disabled"
+if [[ "${BUILD_EL2:-false}" == "true" ]]; then
+  EL2_KREL="$(cat "$WORKDIR/kernel-release-el2.txt")"
+  EL2_NOTE="EL2 kernel: $EL2_KREL (experimental)"
+fi
 mkdir -p "$ARTIFACT_DIR"
 zstd -T0 -19 "$IMAGE_FILE" -o "$ZST_FILE"
+(cd "$ARTIFACT_DIR" && sha256sum "$ZST_NAME" > SHA256SUMS)
 
-if [[ "$(stat -c '%s' "$ZST_FILE")" -lt "$SPLIT_THRESHOLD_BYTES" ]]; then
-  PACKAGE_GLOB="${IMAGE_BASENAME}.zst"
-  cat > "$RELEASE_BODY_FILE" <<EOF
-## Build Information
-
-- Distribution: AOSC OS Desktop
-- AOSC ARM64 snapshot: ${AOSC_SNAPSHOT}
-- Kernel tag: ${KERNEL_TAG}
-- Kernel release: ${KREL}
-- Architecture: arm64
-- Root filesystem: ext4
-- EFI system partition: FAT32, 1 GiB
-- Bootloader: systemd-boot with a device-tree-aware BLS entry
-- Image: ${IMAGE_BASENAME}
-- Compressed image: ${IMAGE_BASENAME}.zst
-- Build time (UTC): $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-## Notes
-
-- The image uses the standard Gaokun3 kernel; EL2 is not included.
-- The official AOSC Desktop userland is retained. The AOSC graphical OOBE wizard is installed for first-boot user creation; this build does not inject a project-specific user name or password.
-- The AOSC OOBE wizard runs before SDDM on first boot. The KDE first-login helper then attempts to rotate DSI-1 right and set 2x scaling.
-- This is a build artifact, not proof of successful boot on every MateBook E Go hardware revision.
-EOF
+# Actions artifact ZIP carries the COMPLETE compressed image as one file.
+# GitHub Releases still require smaller individual assets (strictly < 2 GiB).
+if [[ "$(stat -c '%s' "$ZST_FILE")" -lt "$SPLIT_LIMIT" ]]; then
+  PACKAGE_GLOB="$ZST_NAME"
+  cp "$ARTIFACT_DIR/SHA256SUMS" "$ARTIFACT_DIR/SHA256SUMS.parts"
 else
   split -b "$IMAGE_CHUNK_SIZE" -d -a 3 "$ZST_FILE" "$ZST_FILE.part-"
-  PACKAGE_GLOB="${IMAGE_BASENAME}.zst.part-*"
-  cat > "$RELEASE_BODY_FILE" <<EOF
-## Build Information
-
-- Distribution: AOSC OS Desktop
-- AOSC ARM64 snapshot: ${AOSC_SNAPSHOT}
-- Kernel tag: ${KERNEL_TAG}
-- Kernel release: ${KREL}
-- Architecture: arm64
-- Root filesystem: ext4
-- EFI system partition: FAT32, 1 GiB
-- Bootloader: systemd-boot with a device-tree-aware BLS entry
-- Image: ${IMAGE_BASENAME}
-- Compressed image: ${IMAGE_BASENAME}.zst
-- Build time (UTC): $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-## Notes
-
-- The image uses the standard Gaokun3 kernel; EL2 is not included.
-- The official AOSC Desktop userland is retained. This build does not inject a project-specific user name or password.
-- The KDE first-login helper attempts to rotate DSI-1 right and set 2x scaling. The SDDM greeter is not configured by that helper.
-- This is a build artifact, not proof of successful boot on every MateBook E Go hardware revision.
-
-## Reassemble and decompress
-
-    cat ${IMAGE_BASENAME}.zst.part-* > ${IMAGE_BASENAME}.zst
-    zstd -d ${IMAGE_BASENAME}.zst -o ${IMAGE_BASENAME}
-EOF
+  PACKAGE_GLOB="$ZST_NAME.part-*"
+  (
+    cd "$ARTIFACT_DIR"
+    find . -maxdepth 1 -type f -name "$PACKAGE_GLOB" -print0 |
+      sort -z |
+      xargs -0 sha256sum > SHA256SUMS.parts
+  )
 fi
+cat > "$RELEASE_BODY" <<EOF
+## AOSC OS Desktop ARM64 / Gaokun3
 
-TAG_NAME="aosc-desktop-${AOSC_SNAPSHOT}-${KREL}-$(date -u +%Y%m%d%H%M%S)"
-echo "$TAG_NAME" > "$WORKDIR/tag-name.txt"
+- Snapshot: $SNAPSHOT
+- Standard EL1 kernel: $KREL
+- $EL2_NOTE
+- Disk: GPT, FAT32 ESP (1 GiB), ext4 rootfs
+- Bootloader: systemd-boot; default EL1
+- Full raw disk image: $BASE
+- Compressed raw disk image: $ZST_NAME
+- Build UTC: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+## Write to USB
+
+The Actions artifact ZIP contains ONE complete $ZST_NAME and SHA256SUMS.
+Extract ZIP and then decompress .zst to obtain the complete .img. Write the
+whole .img to a USB drive in raw/DD mode. Do not extract individual partitions.
+
+On a GitHub Release with split assets, reconstruct the compressed image:
+    cat $ZST_NAME.part-* > $ZST_NAME
+    zstd -d $ZST_NAME -o $BASE
+
+This is experimental on the 2022 MateBook E Go performance edition.
+EL2 can have Qualcomm Venus decode limitations. Flashing overwrites the entire
+target USB, and neither EL1 nor EL2 has been verified on this hardware revision.
+EOF
+TAG="aosc-desktop-$SNAPSHOT-$KREL$(if [[ -n "$EL2_KREL" ]]; then printf -- '-el2'; fi)-$(date -u +%Y%m%d%H%M%S)"
+echo "$TAG" > "$WORKDIR/tag-name.txt"
 echo "$PACKAGE_GLOB" > "$WORKDIR/package-glob.txt"
-basename "$RELEASE_BODY_FILE" > "$WORKDIR/release-body-file.txt"
-
-(
-  cd "$ARTIFACT_DIR"
-  if ! find . -maxdepth 1 -type f -name "$PACKAGE_GLOB" -print -quit | grep -q .; then
-    echo "No compressed image files found for package pattern: $PACKAGE_GLOB" >&2
-    exit 1
-  fi
-  find . -maxdepth 1 -type f -name "$PACKAGE_GLOB" -print0 |
-    sort -z |
-    xargs -0 sha256sum > SHA256SUMS
-)
+echo "$ZST_NAME" > "$WORKDIR/direct-image-name.txt"
+basename "$RELEASE_BODY" > "$WORKDIR/release-body-file.txt"

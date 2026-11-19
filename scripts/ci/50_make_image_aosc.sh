@@ -11,6 +11,11 @@ set -euo pipefail
 : "${IMAGE_FILE:?missing IMAGE_FILE}"
 
 KREL="$(cat "$WORKDIR/kernel-release.txt")"
+BUILD_EL2="${BUILD_EL2:-false}"
+KREL_EL2=""
+if [[ "$BUILD_EL2" == "true" ]]; then
+  KREL_EL2="$(cat "$WORKDIR/kernel-release-el2.txt")"
+fi
 DTB_NAME="sc8280xp-huawei-gaokun3.dtb"
 
 [[ "$IMAGE_SIZE" =~ ^[1-9][0-9]*G$ ]] || {
@@ -33,6 +38,10 @@ EFI_UUID="$(cat "$WORKDIR/efi-uuid.txt")"
 
 test -s "$ROOTFS_DIR/boot/vmlinuz-$KREL"
 test -s "$ROOTFS_DIR/boot/dtb-$KREL/qcom/$DTB_NAME"
+if [[ "$BUILD_EL2" == "true" ]]; then
+  test -s "$ROOTFS_DIR/boot/vmlinuz-$KREL_EL2"
+  test -s "$ROOTFS_DIR/boot/dtb-$KREL_EL2/qcom/sc8280xp-huawei-gaokun3-el2.dtb"
+fi
 
 cleanup() {
   set +e
@@ -61,7 +70,7 @@ sudo mount -t proc proc "$MNT/proc"
 sudo mount -t sysfs sysfs "$MNT/sys"
 sudo mount -t tmpfs tmpfs "$MNT/run"
 
-sudo chroot "$MNT" /usr/bin/env KREL="$KREL" ROOT_UUID="$ROOT_UUID" DTB_NAME="$DTB_NAME" \
+sudo chroot "$MNT" /usr/bin/env KREL="$KREL" KREL_EL2="$KREL_EL2" BUILD_EL2="$BUILD_EL2" ROOT_UUID="$ROOT_UUID" DTB_NAME="$DTB_NAME" \
   /bin/bash -euxo pipefail <<'CHROOT_EOF'
 echo "aosc-gaokun3" > /etc/hostname
 
@@ -79,6 +88,10 @@ command -v dracut
 command -v bootctl
 dracut --force --no-hostonly "/boot/initramfs-$KREL.img" "$KREL"
 test -s "/boot/initramfs-$KREL.img"
+if [[ "$BUILD_EL2" == "true" ]]; then
+  dracut --force --no-hostonly "/boot/initramfs-$KREL_EL2.img" "$KREL_EL2"
+  test -s "/boot/initramfs-$KREL_EL2.img"
+fi
 
 # Install the ARM64 systemd-boot loader without modifying the build host's NVRAM.
 bootctl --no-variables --esp-path=/boot/efi install
@@ -98,6 +111,22 @@ initrd /aosc/$KREL/initramfs.img
 devicetree /aosc/$KREL/gaokun3.dtb
 options $(cat /etc/kernel/cmdline)
 EOF
+
+if [[ "$BUILD_EL2" == "true" ]]; then
+  install -d "/boot/efi/aosc/$KREL_EL2"
+  install -m0644 "/boot/vmlinuz-$KREL_EL2" "/boot/efi/aosc/$KREL_EL2/Image"
+  install -m0644 "/boot/initramfs-$KREL_EL2.img" "/boot/efi/aosc/$KREL_EL2/initramfs.img"
+  install -m0644 "/boot/dtb-$KREL_EL2/qcom/sc8280xp-huawei-gaokun3-el2.dtb" \
+    "/boot/efi/aosc/$KREL_EL2/gaokun3-el2.dtb"
+  cat > "/boot/efi/loader/entries/aosc-$KREL_EL2.conf" <<EOF
+title AOSC OS Desktop (Gaokun3 EL2 / KVM - experimental)
+version $KREL_EL2
+linux /aosc/$KREL_EL2/Image
+initrd /aosc/$KREL_EL2/initramfs.img
+devicetree /aosc/$KREL_EL2/gaokun3-el2.dtb
+options $(cat /etc/kernel/cmdline) modprobe.blacklist=simpledrm
+EOF
+fi
 
 cat > /boot/efi/loader/loader.conf <<EOF
 default aosc-$KREL.conf
@@ -131,7 +160,16 @@ printf 'uninitialized\n' > /etc/machine-id
 test -s /boot/efi/loader/entries/aosc-$KREL.conf
 grep -Fq "root=UUID=$ROOT_UUID" /boot/efi/loader/entries/aosc-$KREL.conf
 grep -Fq "devicetree /aosc/$KREL/gaokun3.dtb" /boot/efi/loader/entries/aosc-$KREL.conf
+if [[ "$BUILD_EL2" == "true" ]]; then
+  test -s "/boot/efi/loader/entries/aosc-$KREL_EL2.conf"
+  grep -Fq "devicetree /aosc/$KREL_EL2/gaokun3-el2.dtb" \
+    "/boot/efi/loader/entries/aosc-$KREL_EL2.conf"
+fi
 CHROOT_EOF
+
+if [[ "$BUILD_EL2" == "true" ]]; then
+  install_el2_efi_payloads "$MNT" "$GAOKUN_DIR"
+fi
 
 sync
 trap - EXIT
