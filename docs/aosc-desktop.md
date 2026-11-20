@@ -188,3 +188,26 @@ Xrandr isn't available or rotation is unsupported, so first-boot setup is not
 blocked. TTY rotation remains controlled by `fbcon=rotate:1`.
 User KDE sessions are still configured by the existing KScreen autostart.
 This image-side patch doesn't retroactively modify previously flashed media.
+
+## Kprobes, ftrace and tracefs (EL1 and EL2)
+
+Both the standard Gaokun3 kernel and the experimental EL2 kernel enable
+`CONFIG_KPROBES=y`, `CONFIG_FTRACE=y`, `CONFIG_KPROBE_EVENTS=y`, and
+`CONFIG_TRACING=y`. The build script checks these in the actual
+`.config` after `olddefconfig` and **fails the build** if any are missing.
+The generated configuration is also stored as
+`/boot/config-<kernel-release>` in the installed system.
+
+The Linux 7.2 kernel has **no** standalone `CONFIG_TRACEFS_FS` Kconfig
+symbol: `fs/Makefile` and `fs/tracefs/Makefile` both build tracefs with
+`CONFIG_TRACING`. If not already mounted on the device:
+
+```sh
+sudo mkdir -p /sys/kernel/tracing
+sudo mount -t tracefs tracefs /sys/kernel/tracing
+grep -E '^CONFIG_(KPROBES|FTRACE|KPROBE_EVENTS|TRACING)=y$' "/boot/config-$(uname -r)"
+test -e /sys/kernel/tracing/kprobe_events
+```
+
+Changes require booting the rebuilt kernel; merely modifying the build
+repository does not enable tracing in the currently running kernel.

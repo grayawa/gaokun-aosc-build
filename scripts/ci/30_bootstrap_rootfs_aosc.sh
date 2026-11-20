@@ -235,6 +235,7 @@ sudo rm -f "$ROOTFS_DIR/lib/modules/$KREL/build" "$ROOTFS_DIR/lib/modules/$KREL/
 sudo depmod -b "$ROOTFS_DIR" -a "$KREL"
 
 sudo install -Dm644 "$IMAGE_SOURCE" "$ROOTFS_DIR/boot/vmlinuz-$KREL"
+sudo install -Dm644 "$KERN_OUT/.config" "$ROOTFS_DIR/boot/config-$KREL"
 sudo install -Dm644 "$DTB_SOURCE" "$ROOTFS_DIR/boot/dtb-$KREL/qcom/$DTB_NAME"
 if [[ "$BUILD_EL2" == "true" ]]; then
   sudo make -C "$KERN_SRC_EL2" O="$KERN_OUT_EL2" ARCH=arm64 \
@@ -243,6 +244,7 @@ if [[ "$BUILD_EL2" == "true" ]]; then
   sudo depmod -b "$ROOTFS_DIR" -a "$KREL_EL2"
   sudo install -Dm644 "$KERN_OUT_EL2/arch/arm64/boot/Image" \
     "$ROOTFS_DIR/boot/vmlinuz-$KREL_EL2"
+  sudo install -Dm644 "$KERN_OUT_EL2/.config" "$ROOTFS_DIR/boot/config-$KREL_EL2"
   sudo install -Dm644 \
     "$KERN_OUT_EL2/arch/arm64/boot/dts/qcom/sc8280xp-huawei-gaokun3-el2.dtb" \
     "$ROOTFS_DIR/boot/dtb-$KREL_EL2/qcom/sc8280xp-huawei-gaokun3-el2.dtb"

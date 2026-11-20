@@ -38,7 +38,25 @@ build_variant() {
     "$src_dir"/scripts/config --file "$out_dir/.config" --set-str LOCALVERSION "$localversion"
   fi
 
+  # Enable kernel dynamic instrumentation for both EL1 and optional EL2.
+  # In Linux 7.2, tracefs is built by CONFIG_TRACING, not by a separate
+  # CONFIG_TRACEFS_FS option. KPROBE_EVENTS selects the hidden TRACING symbol.
+  local -a tracing_options=(KPROBES FTRACE KPROBE_EVENTS TRACING)
+  local option
+  for option in "${tracing_options[@]}"; do
+    "$src_dir"/scripts/config --file "$out_dir/.config" --enable "$option"
+  done
+
   make -C "$src_dir" O="$out_dir" ARCH=arm64 CROSS_COMPILE="$CROSS_COMPILE" olddefconfig
+
+  # Fail instead of silently shipping a kernel missing tracing support.
+  for option in "${tracing_options[@]}"; do
+    if ! grep -qx "CONFIG_${option}=y" "$out_dir/.config"; then
+      echo "Missing required CONFIG_${option}=y after olddefconfig ($src_dir)" >&2
+      exit 1
+    fi
+  done
+
   make -C "$src_dir" O="$out_dir" ARCH=arm64 CROSS_COMPILE="$CROSS_COMPILE" -j"${JOBS:-$(nproc)}" Image modules dtbs
   make -C "$src_dir" O="$out_dir" ARCH=arm64 CROSS_COMPILE="$CROSS_COMPILE" modules_prepare
 }
