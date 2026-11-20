@@ -149,9 +149,21 @@ complete, unbroken compressed raw image as a directly downloadable file (no ZIP)
 ## Optional EL2 mode
 
 Following [9Bakabaka's 7.2.7 Fedora EL2 release](https://github.com/9Bakabaka/build/releases/tag/fedora45-7.2.7-gaokun3%2B-el2-20261115133603),
-this experimental workflow builds both the normal EL1 kernel
-`73033564068250603f5b2150c408554faaf22d66` and the pinned EL2
-kernel `6122a641adb7b93e2671867540d6f04ef3fe1529`.
+this experimental workflow builds both kernels from
+[`grayawa/gaokun3-linux`](https://github.com/grayawa/gaokun3-linux):
+the normal EL1 kernel at commit
+[`8d2b608e10fd73bef39b19464915b25caf52bead`](https://github.com/grayawa/gaokun3-linux/commit/8d2b608e10fd73bef39b19464915b25caf52bead)
+(branch [`aosc-fastrpc-dma-coherent-el1`](https://github.com/grayawa/gaokun3-linux/tree/aosc-fastrpc-dma-coherent-el1))
+and the pinned EL2 kernel at commit
+[`4c3ac2edba9b819145b347be02213d44aee35fcf`](https://github.com/grayawa/gaokun3-linux/commit/4c3ac2edba9b819145b347be02213d44aee35fcf)
+(branch [`aosc-fastrpc-dma-coherent-el2`](https://github.com/grayawa/gaokun3-linux/tree/aosc-fastrpc-dma-coherent-el2)).
+
+Both commits backport upstream commit
+[`3ca6796122d931ed3923884b019b0a32c26cade6`](https://github.com/torvalds/linux/commit/3ca6796122d931ed3923884b019b0a32c26cade6).
+It marks all 20 SC8280XP FastRPC compute context banks as `dma-coherent`:
+3 SLPI, 3 ADSP and 14 CDSP banks. This corrects the DMA coherency
+description for shared DSP buffers; successful compilation alone does not
+establish runtime QAIRT or DSP validation.
 The ESP contains two systemd-boot entries, the EL2-specific DTB and
 initramfs, `slbounceaa64.efi`, `qebspilaa64.efi`, `tcblaunch.exe`, and the
 required Qualcomm DSP firmware. **Normal EL1 remains the default boot**;
