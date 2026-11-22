@@ -17,9 +17,8 @@
 | --- | --- |
 | 内核仓库 | `gaokun3/kernel` |
 | 内核分支 / 产物标签 | `7.2.15-bore` |
-| 固定内核提交 | `${sourceSha}`（`gaokun3/kernel:7.2.15-bore` 当前分支头） |
+| 固定内核提交 | `206f40c6879ad336544e3dbb1131b34cd355097f`（`gaokun3/kernel:7.2.15-bore` 当前分支头） |
 | Linux 版本 | `7.2.15` |
-| Fedora / Ubuntu | 44 / 26.04 |
 | Fedora / Ubuntu | 44 / 26.04 |
 | EL2 | 未设置提交；显式请求会报错 |
 
