@@ -1,5 +1,11 @@
 # gaokun3 双仓库迁移记录
 
+## 当前构建输入（2026-11-22）
+
+当前 `build.env` 固定使用 [grayawa/gaokun3-kernel-radxa-remix](https://github.com/grayawa/gaokun3-kernel-radxa-remix/tree/7.2.15-bore) 的 `7.2.15-bore` 分支，内核提交为 `5b35961926519b845cb919c94e275679d7e42f69`。该提交在 `arch/arm64/configs/gaokun3_defconfig` 中启用了 `CONFIG_KPROBES`、`CONFIG_FTRACE`、`CONFIG_KPROBE_EVENTS`、`CONFIG_TRACING` 和 `CONFIG_TRACEFS_FS`。
+
+下方记录描述此前基于 `gaokun3/linux` 的迁移审计与验证历史；它们保留作为历史依据，不再代表当前 `build.env` 的内核源码固定输入。
+
 这是迁移候选，不能作为已验证发行版发布。两个目标仓库已建立，内核 `gaokun3-next` 分支已发布下表的 Iris/GSI 候选精确提交，buildbot 迁移位于 `next`。原仓库 PR #7 保留迁移评审记录。
 
 ## 仓库边界
