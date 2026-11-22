@@ -4,7 +4,7 @@
 
 面向华为 MateBook E Go 2023（代号 `gaokun3`）、基于高通骁龙 8cx Gen3（`SC8280XP`）平台的 Linux 镜像构建脚本、工具和固件。内核源码、驱动、设备树及配置在独立的下游内核仓库维护。
 
-**迁移草案，尚不可发布。** 仓库为 [gaokun3/linux](https://github.com/gaokun3/linux/tree/gaokun3-next) 与 [gaokun3/buildbot](https://github.com/gaokun3/buildbot/tree/next)；Iris/Himax/EC 候选已通过完整内核编译、DEB/RPM 打包及 Fedora 镜像构建，仍待实机验收，EL2 已禁用。参见 [迁移记录与检查项](migration.md)。
+**迁移草案，尚不可发布。** 当前内核构建使用 [gaokun3/kernel](https://github.com/gaokun3/kernel/tree/7.2.15-bore)，并在 `build.env` 中固定不可变提交 SHA；它与旧的 [gaokun3/linux](https://github.com/gaokun3/linux) 是两个不同仓库。构建脚本项目仍为 [gaokun3/buildbot](https://github.com/gaokun3/buildbot/tree/next)。7.2.15-bore 候选仍需实机验收，EL2 暂时禁用。参见 [迁移记录与检查项](migration.md)。
 
 `build.env` 固定内核 SHA 与发行版版本；`./build.sh kernel|debs|rpms` 是本地入口，镜像组装暂仍由 CI 执行。
 
