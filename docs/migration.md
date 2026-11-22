@@ -1,10 +1,11 @@
 # gaokun3 双仓库迁移记录
 
-这是迁移候选，不能作为已验证发行版发布。两个目标仓库已建立，内核 `gaokun3-next` 分支已发布下表的 Iris/GSI 候选精确提交，buildbot 迁移位于 `next`。原仓库 PR #7 保留迁移评审记录。
+这是迁移候选，不能作为已验证发行版发布。当前构建输入已切换到 `gaokun3/kernel:7.2.15-bore`，并由 `build.env` 固定到精确提交；切换不代表设备实测通过。原仓库 PR #7 保留早期迁移评审记录。
 
 ## 仓库边界
 
-- `gaokun3/linux`：从 `gregkh/linux` fork，`gaokun3` 维护设备提交，`gaokun3-next` 审查 Iris/GSI 候选；DTS、驱动和 `gaokun3_defconfig` 都在内核树内。
+- `gaokun3/kernel`：当前构建使用的内核源码仓库，来自 `radxa/kernel` 的 fork；固定使用 `7.2.15-bore` 分支对应的精确 SHA。DTS、驱动和 `gaokun3_defconfig` 均直接从该仓库检出。
+- `gaokun3/linux`：旧的独立内核仓库，不再是本构建的 `KERNEL_REPOSITORY`。
 - `gaokun3/buildbot`：Bash 构建入口、打包、镜像、固件及用户空间工具。GitHub Actions 负责调度。镜像组装仍包含工作流内联步骤，尚未全部抽成脚本。
 - 移除 buildbot 的 `patches/`、`drivers/`、`dts/`、`defconfig/`。原件保留在迁移前提交 `315528c028843794ccd0f3d9dab373b03033150f`，不在构建时再次应用。
 
@@ -14,9 +15,11 @@
 
 | 输入 | 当前候选 |
 | --- | --- |
-| 上游分支 | gregkh/linux `linux-rolling-stable` |
-| 上游提交 | `d396b05e7e39b0ed6f6d5553fbaf174228e18bdf`，Merge v7.2.6 |
-| 下游提交 | `0a95cd00a3eb3a43f04746d2b4c6c9f1c7acf485`（恢复上游双 DSI PLL 修复） |
+| 内核仓库 | `gaokun3/kernel` |
+| 内核分支 / 产物标签 | `7.2.15-bore` |
+| 固定内核提交 | `${sourceSha}`（`gaokun3/kernel:7.2.15-bore` 当前分支头） |
+| Linux 版本 | `7.2.15` |
+| Fedora / Ubuntu | 44 / 26.04 |
 | Fedora / Ubuntu | 44 / 26.04 |
 | EL2 | 未设置提交；显式请求会报错 |
 
