@@ -4,9 +4,11 @@ English | [中文](docs/README_zh.md)
 
 Build scripts, tools, and firmware for Linux images targeting the Huawei MateBook E Go 2023 (codename `gaokun3`) based on Qualcomm Snapdragon 8cx Gen3 (`SC8280XP`).
 
-**Migration draft, not ready for release.** The repositories are [gaokun3/linux](https://github.com/gaokun3/linux/tree/gaokun3-next) and [gaokun3/buildbot](https://github.com/gaokun3/buildbot/tree/next). The Iris/Himax/EC candidate has passed full kernel builds, DEB/RPM packaging and Fedora image creation; hardware validation remains required. EL2 is disabled pending migration. See the [migration checklist](docs/migration.md).
+**Migration draft, not ready for release.** This build repository uses [grayawa/gaokun3-kernel-radxa-remix](https://github.com/grayawa/gaokun3-kernel-radxa-remix/tree/7.2.15-bore) (`7.2.15-bore`) as its kernel source, pinned to an exact commit in `build.env`. The Iris/Himax/EC candidate has passed full kernel builds, DEB/RPM packaging and Fedora image creation; hardware validation remains required. EL2 is disabled pending migration. See the [migration checklist](docs/migration.md).
 
-`build.env` pins the kernel SHA and distribution versions. Use `./build.sh kernel|debs|rpms` locally; image assembly currently runs through CI. Drivers, DTS and defconfig belong in the downstream kernel tree.
+`build.env` pins the kernel SHA and distribution versions. Use `./build.sh kernel|debs|rpms` locally; image assembly currently runs through CI.
+
+The `arch/arm64/configs/gaokun3_defconfig` enables Kprobes, ftrace, kprobe events, tracing, and tracefs. Drivers, DTS and defconfig belong in the downstream kernel tree.
 
 See [rootfs rework](docs/rootfs-rework.md) for the ext4 layout and Fedora first-boot account setup.
 
